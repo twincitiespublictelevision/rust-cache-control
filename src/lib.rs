@@ -40,6 +40,10 @@ pub struct CacheControl {
     pub immutable: bool,
     pub no_store: bool,
     pub no_transform: bool,
+
+    // RFC 5861 https://tools.ietf.org/html/rfc5861
+    pub stale_while_revalidate: Option<Duration>,
+    pub stale_if_error: Option<Duration>,
 }
 
 impl CacheControl {
@@ -99,6 +103,30 @@ impl CacheControl {
                 "immutable" => ret.immutable = true,
                 "no-store" => ret.no_store = true,
                 "no-transform" => ret.no_transform = true,
+
+                // RFC 5861 https://tools.ietf.org/html/rfc5861
+                "stale-while-revalidate" => {
+                    if let None = val {
+                        return None;
+                    }
+                    let val_d = *(val.unwrap());
+                    let p_val = val_d.parse();
+                    if let Err(_) = p_val {
+                        return None;
+                    }
+                    ret.stale_while_revalidate = Some(Duration::new(p_val.unwrap(), 0));
+                }
+                "stale-if-error" => {
+                    if let None = val {
+                        return None;
+                    }
+                    let val_d = *(val.unwrap());
+                    let p_val = val_d.parse();
+                    if let Err(_) = p_val {
+                        return None;
+                    }
+                    ret.stale_if_error = Some(Duration::new(p_val.unwrap(), 0));
+                }
                 _ => (),
             };
         }
@@ -129,6 +157,10 @@ impl Default for CacheControl {
             immutable: false,
             no_store: false,
             no_transform: false,
+
+            // RFC 5861 https://tools.ietf.org/html/rfc5861
+            stale_while_revalidate: None,
+            stale_if_error: None,
         }
     }
 }
@@ -179,6 +211,8 @@ mod test {
                 immutable: false,
                 no_store: true,
                 no_transform: false,
+                stale_while_revalidate: None,
+                stale_if_error: None
             }
         );
     }
@@ -225,7 +259,66 @@ mod test {
                 immutable: false,
                 no_store: false,
                 no_transform: false,
+                stale_while_revalidate: None,
+                stale_if_error: None
             }
         );
+    }
+
+    #[test]
+    fn test_stale_while_revalidate() {
+        let test1 =
+            &CacheControl::from_header("Cache-Control: public, stale-while-revalidate=60").unwrap();
+        assert_eq!(
+            *test1,
+            CacheControl {
+                cachability: Some(Cachability::Public),
+                max_age: None,
+                s_max_age: None,
+                max_stale: None,
+                min_fresh: None,
+                must_revalidate: false,
+                proxy_revalidate: false,
+                immutable: false,
+                no_store: false,
+                no_transform: false,
+                stale_while_revalidate: Some(Duration::new(60, 0)),
+                stale_if_error: None
+            }
+        );
+
+        let test2 = &CacheControl::from_header("Cache-Control: public, stale-while-revalidate");
+        assert!(test2.is_none());
+
+        let test3 = &CacheControl::from_header("Cache-Control: public, stale-while-revalidate=abc");
+        assert!(test3.is_none());
+    }
+
+    #[test]
+    fn test_stale_if_error() {
+        let test1 = &CacheControl::from_header("Cache-Control: public, stale-if-error=60").unwrap();
+        assert_eq!(
+            *test1,
+            CacheControl {
+                cachability: Some(Cachability::Public),
+                max_age: None,
+                s_max_age: None,
+                max_stale: None,
+                min_fresh: None,
+                must_revalidate: false,
+                proxy_revalidate: false,
+                immutable: false,
+                no_store: false,
+                no_transform: false,
+                stale_while_revalidate: None,
+                stale_if_error: Some(Duration::new(60, 0))
+            }
+        );
+
+        let test2 = &CacheControl::from_header("Cache-Control: public, stale-if-error");
+        assert!(test2.is_none());
+
+        let test3 = &CacheControl::from_header("Cache-Control: public, stale-if-error=abc");
+        assert!(test3.is_none());
     }
 }
