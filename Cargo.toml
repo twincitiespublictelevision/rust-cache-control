@@ -7,6 +7,3 @@ license = "MIT"
 repository = "https://github.com/connerebbinghaus/rust-cache-control"
 readme = "README.md"
 edition = "2018"
-
-[dependencies]
-time = "0.1"

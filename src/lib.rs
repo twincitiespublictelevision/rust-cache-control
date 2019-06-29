@@ -1,6 +1,4 @@
-extern crate time;
-
-use time::Duration;
+use std::time::Duration;
 
 /// How the data may be cached.
 #[derive(Eq, PartialEq, Debug)]
@@ -22,12 +20,12 @@ pub enum Cachability {
 /// # Example
 /// ```
 /// extern crate cache_control;
-/// extern crate time;
+///
 /// use cache_control::CacheControl;
-/// use time::Duration;
+/// use std::time::Duration;
 ///
 /// let cache_control = CacheControl::from_header("Cache-Control: max-age=60").unwrap();
-/// assert_eq!(cache_control.max_age, Some(Duration::seconds(60)));
+/// assert_eq!(cache_control.max_age, Some(Duration::new(60, 0)));
 /// ```
 ///
 #[derive(Eq, PartialEq, Debug)]
@@ -72,8 +70,8 @@ impl CacheControl {
                     if let Err(_) = p_val {
                         return None;
                     }
-                    ret.max_age = Some(Duration::seconds(p_val.unwrap()));
-                },
+                    ret.max_age = Some(Duration::new(p_val.unwrap(), 0));
+                }
                 "max-stale" => {
                     if let None = val {
                         return None;
@@ -83,8 +81,8 @@ impl CacheControl {
                     if let Err(_) = p_val {
                         return None;
                     }
-                    ret.max_stale = Some(Duration::seconds(p_val.unwrap()));
-                },
+                    ret.max_stale = Some(Duration::new(p_val.unwrap(), 0));
+                }
                 "min-fresh" => {
                     if let None = val {
                         return None;
@@ -94,8 +92,8 @@ impl CacheControl {
                     if let Err(_) = p_val {
                         return None;
                     }
-                    ret.min_fresh = Some(Duration::seconds(p_val.unwrap()));
-                },
+                    ret.min_fresh = Some(Duration::new(p_val.unwrap(), 0));
+                }
                 "must-revalidate" => ret.must_revalidate = true,
                 "proxy-revalidate" => ret.proxy_revalidate = true,
                 "immutable" => ret.immutable = true,
@@ -137,14 +135,29 @@ impl Default for CacheControl {
 
 #[cfg(test)]
 mod test {
-    use super::{CacheControl, Cachability};
-    use time::Duration;
+    use super::{Cachability, CacheControl};
+    use std::time::Duration;
 
     #[test]
     fn test_from_value() {
-        assert_eq!(CacheControl::from_value("").unwrap(), CacheControl::default());
-        assert_eq!(CacheControl::from_value("private").unwrap().cachability.unwrap(), Cachability::Private);
-        assert_eq!(CacheControl::from_value("max-age=60").unwrap().max_age.unwrap(), Duration::seconds(60));
+        assert_eq!(
+            CacheControl::from_value("").unwrap(),
+            CacheControl::default()
+        );
+        assert_eq!(
+            CacheControl::from_value("private")
+                .unwrap()
+                .cachability
+                .unwrap(),
+            Cachability::Private
+        );
+        assert_eq!(
+            CacheControl::from_value("max-age=60")
+                .unwrap()
+                .max_age
+                .unwrap(),
+            Duration::new(60, 0)
+        );
     }
 
     #[test]
@@ -153,25 +166,43 @@ mod test {
         assert_eq!(test1.cachability, Some(Cachability::NoCache));
         assert_eq!(test1.no_store, true);
         assert_eq!(test1.must_revalidate, true);
-        assert_eq!(*test1, CacheControl {
-            cachability: Some(Cachability::NoCache),
-            max_age: None,
-            s_max_age: None,
-            max_stale: None,
-            min_fresh: None,
-            must_revalidate: true,
-            proxy_revalidate: false,
-            immutable: false,
-            no_store: true,
-            no_transform: false,
-        });
+        assert_eq!(
+            *test1,
+            CacheControl {
+                cachability: Some(Cachability::NoCache),
+                max_age: None,
+                s_max_age: None,
+                max_stale: None,
+                min_fresh: None,
+                must_revalidate: true,
+                proxy_revalidate: false,
+                immutable: false,
+                no_store: true,
+                no_transform: false,
+            }
+        );
     }
 
     #[test]
     fn test_from_header() {
-        assert_eq!(CacheControl::from_header("Cache-Control: ").unwrap(), CacheControl::default());
-        assert_eq!(CacheControl::from_header("Cache-Control: private").unwrap().cachability.unwrap(), Cachability::Private);
-        assert_eq!(CacheControl::from_header("Cache-Control: max-age=60").unwrap().max_age.unwrap(), Duration::seconds(60));
+        assert_eq!(
+            CacheControl::from_header("Cache-Control: ").unwrap(),
+            CacheControl::default()
+        );
+        assert_eq!(
+            CacheControl::from_header("Cache-Control: private")
+                .unwrap()
+                .cachability
+                .unwrap(),
+            Cachability::Private
+        );
+        assert_eq!(
+            CacheControl::from_header("Cache-Control: max-age=60")
+                .unwrap()
+                .max_age
+                .unwrap(),
+            Duration::new(60, 0)
+        );
         assert_eq!(CacheControl::from_header("foo"), None);
         assert_eq!(CacheControl::from_header("bar: max-age=60"), None);
     }
@@ -180,18 +211,21 @@ mod test {
     fn test_from_header_multi() {
         let test1 = &CacheControl::from_header("Cache-Control: public, max-age=600").unwrap();
         assert_eq!(test1.cachability, Some(Cachability::Public));
-        assert_eq!(test1.max_age, Some(Duration::seconds(600)));
-        assert_eq!(*test1, CacheControl {
-            cachability: Some(Cachability::Public),
-            max_age: Some(Duration::seconds(600)),
-            s_max_age: None,
-            max_stale: None,
-            min_fresh: None,
-            must_revalidate: false,
-            proxy_revalidate: false,
-            immutable: false,
-            no_store: false,
-            no_transform: false,
-        });
+        assert_eq!(test1.max_age, Some(Duration::new(600, 0)));
+        assert_eq!(
+            *test1,
+            CacheControl {
+                cachability: Some(Cachability::Public),
+                max_age: Some(Duration::new(600, 0)),
+                s_max_age: None,
+                max_stale: None,
+                min_fresh: None,
+                must_revalidate: false,
+                proxy_revalidate: false,
+                immutable: false,
+                no_store: false,
+                no_transform: false,
+            }
+        );
     }
 }
